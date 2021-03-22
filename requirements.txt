@@ -7,6 +7,14 @@
 asgiref==3.3.1
     # via django
 django==3.1.7
+    # via
+    #   -r requirements.in
+    #   djangorestframework
+djangorestframework==3.12.2
+    # via -r requirements.in
+mysqlclient==2.0.3
+    # via -r requirements.in
+python-dotenv==0.15.0
     # via -r requirements.in
 pytz==2021.1
     # via django
