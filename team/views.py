@@ -2,17 +2,23 @@ from django.views import View
 from django.http import JsonResponse
 import json
 from .models import TeamMember
+from .serializers import TeamMemberSerializer
 from django.forms.models import model_to_dict
 
 
 class MemberListView(View):
     def get(self, request):
-        team_members = TeamMember.objects.values()
-        return JsonResponse({"data": list(team_members)}, safe=False)
+        team_members = TeamMember.objects.all()
+        team_data = TeamMemberSerializer(team_members, many=True)
+        return JsonResponse({"data": team_data.data}, safe=False)
 
     def post(self, request):
         input_json = json.loads(request.body)
-        new_member = TeamMember.objects.create(**input_json)
+        serializer = TeamMemberSerializer(data=input_json)
+        if not serializer.is_valid():
+            return JsonResponse({"errors": serializer.errors})
+
+        new_member = serializer.save()
         return JsonResponse(model_to_dict(new_member), status=201)
 
 class MemberView(View):
@@ -26,7 +32,7 @@ class MemberView(View):
         except TeamMember.DoesNotExist:
             return JsonResponse({}, status=404)
 
-        return JsonResponse(model_to_dict(member))
+        return JsonResponse(TeamMemberSerializer(member).data)
 
     def put(self, request, **kwargs):
         member_id = kwargs.get("member_id")
@@ -39,11 +45,13 @@ class MemberView(View):
             return JsonResponse({}, status=404)
 
         input_json = json.loads(request.body)
-        for attr, val in input_json.items():
-            setattr(member, attr, val)
-        member.save()
+        serializer = TeamMemberSerializer(member, data=input_json, partial=True)
+        if not serializer.is_valid():
+            return JsonResponse({"errors": serializer.errors})
 
-        return JsonResponse(model_to_dict(member))
+        member = serializer.save()
+
+        return JsonResponse(TeamMemberSerializer(member).data)
 
     def delete(self, request, **kwargs):
         member_id = kwargs.get("member_id")
